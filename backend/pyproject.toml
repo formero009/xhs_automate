@@ -1,0 +1,21 @@
+[project]
+name = "backend"
+version = "0.1.0"
+description = "小红书图文发布自动化"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "flask>=3.1.0",
+    "flask-cors>=5.0.0",
+    "pathlib>=1.0.1",
+    "pillow==10.2.0",
+    "playwright>=1.49.1",
+    "requests-toolbelt==1.0.0",
+    "requests>=2.32.3",
+    "xhs>=0.2.13",
+    "websocket-client==1.7.0",
+    "openai>=1.57.4",
+    "flask-sqlalchemy>=3.1.1",
+    "aiohttp>=3.11.11",
+    "python-dotenv>=1.0.1",
+]
