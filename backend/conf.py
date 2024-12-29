@@ -7,6 +7,11 @@ load_dotenv()
 
 BASE_PATH = Path(__file__).parent.resolve()
 
+# ComfyUI配置
+COMFYUI_HOST = os.getenv('COMFYUI_HOST', '127.0.0.1')
+COMFYUI_PORT = os.getenv('COMFYUI_PORT', '8188')
+COMFYUI_SERVER_ADDRESS = f"{COMFYUI_HOST}:{COMFYUI_PORT}"
+
 # 图片相关配置
 ALLOWED_EXTENSIONS = set(os.getenv('ALLOWED_EXTENSIONS', 'png,jpg,jpeg').split(','))
 UPLOAD_FOLDER = os.path.join(BASE_PATH, os.getenv('UPLOAD_FOLDER', 'upload/images'))

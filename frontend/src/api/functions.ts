@@ -11,12 +11,25 @@ export const checkHealth = async (): Promise<ApiResponse> => {
     // 将后端响应转换为统一的 ApiResponse 格式
     return {
       success: response.data.status === 'healthy',
-      message: response.data.message
+      message: response.data.message,
+      data: {
+        status: response.data.status,
+        message: response.data.message,
+        comfyui_status: response.data.comfyui_status
+      }
     }
   } catch (error) {
     return {
       success: false,
-      message: '服务连接失败'
+      message: '服务连接失败',
+      data: {
+        status: 'error',
+        message: '服务连接失败',
+        comfyui_status: {
+          running: false,
+          message: '无法连接到服务'
+        }
+      }
     }
   }
 }

@@ -1,5 +1,6 @@
-from playwright.sync_api import sync_playwright
-import time
+# from playwright.sync_api import sync_playwright
+# import time
+import requests
 from xhs import XhsClient
 from conf import BASE_PATH
 import os
@@ -9,8 +10,8 @@ from typing import Union, List
 
 class XhsUploader:
     def __init__(self, cookie):
-        self.playwright = sync_playwright().start()
-        self.browser_context, self.context_page = self.get_context_page(self.playwright)
+        # self.playwright = sync_playwright().start()
+        # self.browser_context, self.context_page = self.get_context_page(self.playwright)
         self.cookie = cookie
         self.xhs_client = self.initXhsClient()
 
@@ -103,27 +104,27 @@ class XhsUploader:
 
     def sign(self, uri, data, a1="", web_session=""):
         # 填写自己的 flask 签名服务端口地址
-        # res = requests.post("http://192.168.1.150:5005/sign",
-        #                     json={"uri": uri, "data": data, "a1": a1, "web_session": web_session})
-        # signs = res.json()
-        # return {
-        #     "x-s": signs["x-s"],
-        #     "x-t": signs["x-t"]
-        # }
-        self.context_page.goto("https://www.xiaohongshu.com")
-        cookie_list = self.browser_context.cookies()
-        web_session_cookie = list(filter(lambda cookie: cookie["name"] == "web_session", cookie_list))
-        if not web_session_cookie:
-            self.browser_context.add_cookies([
-                {'name': 'web_session', 'value': web_session, 'domain': ".xiaohongshu.com", 'path': "/"},
-                {'name': 'a1', 'value': a1, 'domain': ".xiaohongshu.com", 'path': "/"}]
-            )
-            time.sleep(1)
-        encrypt_params = self.context_page.evaluate("([url, data]) => window._webmsxyw(url, data)", [uri, data])
+        res = requests.post("http://192.168.1.150:5005/sign",
+                            json={"uri": uri, "data": data, "a1": a1, "web_session": web_session})
+        signs = res.json()
         return {
-            "x-s": encrypt_params["X-s"],
-            "x-t": str(encrypt_params["X-t"])
+            "x-s": signs["x-s"],
+            "x-t": signs["x-t"]
         }
+        # self.context_page.goto("https://www.xiaohongshu.com")
+        # cookie_list = self.browser_context.cookies()
+        # web_session_cookie = list(filter(lambda cookie: cookie["name"] == "web_session", cookie_list))
+        # if not web_session_cookie:
+        #     self.browser_context.add_cookies([
+        #         {'name': 'web_session', 'value': web_session, 'domain': ".xiaohongshu.com", 'path': "/"},
+        #         {'name': 'a1', 'value': a1, 'domain': ".xiaohongshu.com", 'path': "/"}]
+        #     )
+        #     time.sleep(1)
+        # encrypt_params = self.context_page.evaluate("([url, data]) => window._webmsxyw(url, data)", [uri, data])
+        # return {
+        #     "x-s": encrypt_params["X-s"],
+        #     "x-t": str(encrypt_params["X-t"])
+        # }
 
     def upload_note(self, title, desc, images, topics, is_private=True):
         """

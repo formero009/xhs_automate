@@ -79,7 +79,7 @@
                                   :placeholder="variable.description"
                                   class="full-width"
                                 />
-                                <n-space v-if="variable.title.toLowerCase().includes('seed _o')" align="center" justify="end" :size="8">
+                                <n-space v-if="variable.description?.toLowerCase().includes('种子') || variable.value_path?.toLowerCase().includes('seed')" align="center" justify="end" :size="8">
                                   <span style="font-size: 12px; color: #666">自动随机</span>
                                   <n-switch
                                     v-model:value="autoRandomSeeds[variable.id]"
@@ -355,6 +355,9 @@ export default defineComponent({
       const cachedData = cached ? JSON.parse(cached) : null
       const cachedWorkflowId = cachedData?.workflow_id
 
+      // 初始化自动随机种子的状态
+      this.autoRandomSeeds = {}
+      
       // 2. 加载工作流列表
       await this.loadWorkflows()
 
@@ -372,24 +375,39 @@ export default defineComponent({
           }
           this.dynamicFormData = filteredFormData
         }
-        this.formData.workflow_id = cachedWorkflowId
-        this.formData.workflow_name = cachedData.workflow_name
-      } 
-      // 4. 如果没有缓存或缓存的工作流不存在，则加载默认工作流
-      else if (this.workflows.length > 0) {
-        this.formData.workflow_id = this.workflows[0].id
-        this.formData.workflow_name = this.workflows[0].name
-        await this.loadWorkflowVariables(this.workflows[0].id)
-        // 保存默认工作流到缓存
-        this.saveToCache()
       }
 
-      // 5. 最后加载历史图片和生成状态
+      // 4. 检查是否有来自主题页面的提示词
+      const themePrompt = localStorage.getItem('theme_prompt')
+      if (themePrompt) {
+        // 找到正向提示词的变量ID
+        const positivePromptVariable = this.inputVariables.find(v => {
+          const titleMatch = v.title?.toLowerCase().includes('正向提示词')
+          const descMatch = v.description?.toLowerCase().includes('正向提示词')
+          const pathMatch = v.value_path?.toLowerCase().includes('positive')
+          return titleMatch || descMatch || pathMatch
+        })
+
+        if (positivePromptVariable) {
+          this.dynamicFormData[positivePromptVariable.id] = themePrompt
+          // 使用后清除缓存
+          localStorage.removeItem('theme_prompt')
+          this.message.success('已自动填入提示词')
+        } else {
+          this.message.warning('未找到正向提示词输入框，请手动填写')
+        }
+      }
+
+      // 5. 加载历史图片
       await this.loadHistoryImages()
-      this.loadGeneratingStatus()
+
+      // 6. 检查是否有未完成的生成任务
+      const generatingStatus = localStorage.getItem(this.GENERATING_KEY)
+      if (generatingStatus === 'true') {
+        this.checkGenerateResult()
+      }
     } catch (error) {
-      console.error('初始化失败:', error)
-      this.message.error('页面初始化失败')
+      this.handleError(error, '初始化失败')
     }
   },
   computed: {
@@ -541,16 +559,17 @@ export default defineComponent({
       this.saveGeneratingStatus(true)
       
       try {
-        // Generate random seeds for enabled variables
-        for (const variable of this.inputVariables) {
+        // 为所有开启了自动随机的种子生成新的随机数
+        this.inputVariables.forEach(variable => {
           if (
             this.autoRandomSeeds[variable.id] && 
-            variable.title.toLowerCase().includes('seed _o')
+            (variable.description?.toLowerCase().includes('种子') || 
+             variable.value_path?.toLowerCase().includes('seed'))
           ) {
-            // Generate a random seed between 0 and 1000000000
+            // 生成一个随机数 (0 到 1000000000 之间)
             this.dynamicFormData[variable.id] = Math.floor(Math.random() * 1000000000)
           }
-        }
+        })
 
         // Build request data
         const requestData = {
@@ -736,7 +755,7 @@ export default defineComponent({
 
         // 从当前表单中获取正向提示词
         let prompt = '';
-        const positivePromptVariable = this.inputVariables.find(v => v.title === '正向提示词');
+        const positivePromptVariable = this.inputVariables.find(v => v.description === '正向提示词');
         
         if (positivePromptVariable && this.dynamicFormData[positivePromptVariable.id]) {
           prompt = this.dynamicFormData[positivePromptVariable.id];
@@ -997,7 +1016,7 @@ export default defineComponent({
   watch: {
     'formData': {
       handler() {
-        this.saveToCache()  // 直接使用 saveToCache 而不是 debouncedSaveCache
+        this.saveToCache()
       },
       deep: true
     },
@@ -1223,7 +1242,7 @@ export default defineComponent({
   }
 }
 
-/* ���暗色主题持 */
+/* 暗色主题 */
 :root[data-theme='dark'] {
   .image-card {
     border-color: rgba(255, 255, 255, 0.1);

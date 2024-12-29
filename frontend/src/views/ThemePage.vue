@@ -214,7 +214,8 @@ const useDirectlyHandler = () => {
 }
 
 const sendToGenerate = () => {
-  localStorage.setItem('promptText', resultText.value)
+  // 保存提示词到本地存储
+  localStorage.setItem('theme_prompt', resultText.value)
   router.push('/generate')
 }
 
