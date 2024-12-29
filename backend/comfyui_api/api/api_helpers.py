@@ -33,7 +33,7 @@ def generate_image_by_prompt_and_image(prompt, output_path, input_path, filename
 def save_image(images, output_path, save_previews):
   output_files = []
   for itm in images:
-    directory = os.path.join(output_path, 'temp/') if itm['type'] == 'temp' and save_previews else output_path
+    directory = output_path
     os.makedirs(directory, exist_ok=True)
     try:
       image = Image.open(io.BytesIO(itm['image_data']))
