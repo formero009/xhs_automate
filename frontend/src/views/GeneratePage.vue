@@ -271,18 +271,16 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, onMounted, watch } from 'vue'
-import { useMessage, useDialog } from 'naive-ui'
+import { defineComponent } from 'vue'
+import { useMessage } from 'naive-ui'
 import { 
   listWorkflow, 
   generateImage, 
   listImages,
   generateCaption,
-  getWorkflowVariables,
-  type WorkflowVariable
-} from '../api/functions'
-import type { GenerateImageParams } from '../api/config'
-import { debounce } from 'lodash-es'
+  getWorkflowVariables
+} from '@/api/functions'
+import type { WorkflowVariable } from '@/api/config'
 
 interface HistoryImage {
   url: string
@@ -290,14 +288,7 @@ interface HistoryImage {
   timestamp?: number | string
   id?: number
   created_at?: string
-  variables?: Record<string, Record<string, any>>
-}
-
-interface PublishData {
-  images: string[]
-  title: string
-  description: string
-  topics: string[]
+  variables?: any[]
 }
 
 interface FormData {
@@ -308,12 +299,8 @@ interface FormData {
 export default defineComponent({
   setup() {
     const message = useMessage()
-    const dialog = useDialog()
-    window.$dialog = dialog
-    
     return {
       message,
-      dialog
     }
   },
   data() {
@@ -367,7 +354,7 @@ export default defineComponent({
         // 恢复缓存的表单数据
         if (cachedData.dynamicFormData) {
           const validVariableIds = this.inputVariables.map(v => v.id)
-          const filteredFormData = {}
+          const filteredFormData: Record<string, any> = {}
           for (const [key, value] of Object.entries(cachedData.dynamicFormData)) {
             if (validVariableIds.includes(Number(key))) {
               filteredFormData[key] = value
@@ -456,8 +443,8 @@ export default defineComponent({
             const [bPrefix, bType] = b.split('-')
             
             // 首先按类型优先级排序
-            const aTypeOrder = typeOrder[aType] ?? 999
-            const bTypeOrder = typeOrder[bType] ?? 999
+            const aTypeOrder = typeOrder[aType as keyof typeof typeOrder] ?? 999
+            const bTypeOrder = typeOrder[bType as keyof typeof typeOrder] ?? 999
             if (aTypeOrder !== bTypeOrder) {
               return aTypeOrder - bTypeOrder
             }
@@ -573,7 +560,7 @@ export default defineComponent({
 
         // Build request data
         const requestData = {
-          workflow_id: this.formData.workflow_id,
+          workflow_id: this.formData.workflow_id!,
           variables: this.inputVariables.map(variable => ({
             id: variable.id,
             value: this.dynamicFormData[variable.id]
@@ -600,14 +587,14 @@ export default defineComponent({
 
     validateForm() {
       if (!this.formData.workflow_id) {
-        this.showFormMessage('请选择工作流', 'error')
+        this.message.error('请选择工作流')
         return false
       }
       
       for (const variable of this.inputVariables) {
         const value = this.dynamicFormData[variable.id]
         if (value === undefined || value === '') {
-          this.showFormMessage(`请填写${variable.title}`, 'error')
+          this.message.error(`请填写${variable.title}`)
           return false
         }
       }
@@ -680,9 +667,8 @@ export default defineComponent({
         
         if (fullImage?.variables) {
           // 检查是否有不同的变量值
-          const currentFormValues = { ...this.dynamicFormData }
           let hasChanges = false
-          let newFormData = {}
+          let newFormData: Record<string, any> = {}
           
           // 遍历图片中的变量
           for (const [varId, varValues] of Object.entries(fullImage.variables)) {
@@ -698,32 +684,33 @@ export default defineComponent({
               }
             }
           }
-          
-          if (hasChanges) {
-            window.$dialog.warning({
-              title: '变量值不同',
-              content: '选中图片的变量值与当前表单不同，是否更新表单？',
-              positiveText: '更新',
-              negativeText: '保持当前',
-              onPositiveClick: () => {
-                this.dynamicFormData = {
-                  ...this.dynamicFormData,
-                  ...newFormData
-                }
-                this.selectedImages.push(imageUrl)
-                this.selectedMap.set(imageUrl, true)
-                this.message.success('已更新表单值')
-              },
-              onNegativeClick: () => {
-                this.selectedImages.push(imageUrl)
-                this.selectedMap.set(imageUrl, true)
-                this.message.info('保持当前表单值不变')
-              }
-            })
-          } else {
-            this.selectedImages.push(imageUrl)
-            this.selectedMap.set(imageUrl, true)
-          }
+          this.selectedImages.push(imageUrl)
+          this.selectedMap.set(imageUrl, true)
+          // if (hasChanges) {
+          //   window.$dialog.warning({
+          //     title: '变量值不同',
+          //     content: '选中图片的变量值与当前表单不同，是否更新表单？',
+          //     positiveText: '更新',
+          //     negativeText: '保持当前',
+          //     onPositiveClick: () => {
+          //       this.dynamicFormData = {
+          //         ...this.dynamicFormData,
+          //         ...newFormData
+          //       }
+          //       this.selectedImages.push(imageUrl)
+          //       this.selectedMap.set(imageUrl, true)
+          //       this.message.success('已更新表单值')
+          //     },
+          //     onNegativeClick: () => {
+          //       this.selectedImages.push(imageUrl)
+          //       this.selectedMap.set(imageUrl, true)
+          //       this.message.info('保持当前表单值不变')
+          //     }
+          //   })
+          // } else {
+          //   this.selectedImages.push(imageUrl)
+          //   this.selectedMap.set(imageUrl, true)
+          // }
         } else {
           this.selectedImages.push(imageUrl)
           this.selectedMap.set(imageUrl, true)
@@ -755,7 +742,7 @@ export default defineComponent({
 
         // 从当前表单中获取正向提示词
         let prompt = '';
-        const positivePromptVariable = this.inputVariables.find(v => v.description === '正向提示词');
+        const positivePromptVariable = this.inputVariables.find(v => v.description === '正向提示词' || v.title == '正向提示词');
         
         if (positivePromptVariable && this.dynamicFormData[positivePromptVariable.id]) {
           prompt = this.dynamicFormData[positivePromptVariable.id];
@@ -783,7 +770,7 @@ export default defineComponent({
         const publishData = {
           images: this.selectedImages,
           title: data.title || '新笔记',
-          description: data.content || '',
+          description: '',
           topics: data.topics || []
         };
 
@@ -822,10 +809,12 @@ export default defineComponent({
       canvas.width = imagesPerRow * imageSize + (imagesPerRow - 1) * gap;
       canvas.height = totalRows * imageSize + (totalRows - 1) * gap;
       
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      if (ctx) {
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
       
-      const loadImage = (url) => {
+      const loadImage = (url: string) => {
         return new Promise((resolve, reject) => {
           const img = new Image();
           img.crossOrigin = 'anonymous';
@@ -844,17 +833,22 @@ export default defineComponent({
           const x = col * (imageSize + gap);
           const y = row * (imageSize + gap);
           
-          const img = await loadImage(this.selectedImages[i]);
-          
-          ctx.drawImage(img, x, y, imageSize, imageSize);
+          if (ctx) {
+            const img = await loadImage(this.selectedImages[i]);
+            if (img instanceof HTMLImageElement) {
+              ctx.drawImage(img, x, y, imageSize, imageSize);
+            }
+          }
         }
         
-        const dataUrl = canvas.toDataURL('image/png');
-        const link = document.createElement('a');
-        link.download = `combined-images-${Date.now()}.png`;
-        link.href = dataUrl;
-        link.click();
-        
+        if (ctx) {
+          const dataUrl = canvas.toDataURL('image/png');
+          const link = document.createElement('a');
+          link.download = `combined-images-${Date.now()}.png`;
+          link.href = dataUrl;
+          link.click();
+        }
+          
         this.message.success('组合图已生成并下载');
       } catch (error) {
         console.error('生成组合图片失败:', error);

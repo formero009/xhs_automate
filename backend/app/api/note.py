@@ -1,9 +1,10 @@
 from flask import Blueprint, request
 from app.utils.response import success_response, error_response
 from xhs_upload.auto_upload import XhsUploader
-from conf import XHS_COOKIE, UPLOAD_FOLDER, OUTPUT_FOLDER
+from conf import UPLOAD_FOLDER, OUTPUT_FOLDER
 import os
 from app.utils.logger import logger
+from app.models.user import User
 
 bp = Blueprint('note', __name__, url_prefix='/api')
 
@@ -18,12 +19,19 @@ def upload_note():
         is_private = data.get('is_private', True)
         image_urls = data.get('images', [])
         topics = data.get('topics', [])
+        user_id = data.get('userId')
         
         logger.info(f"Note details - title: {title}, private: {is_private}, image count: {len(image_urls)}, topics: {topics}")
         
-        if not all([title, desc, image_urls]):
+        if not all([title, image_urls, user_id]):
             logger.warning("Missing required fields in request")
-            return error_response('Missing required fields: title, description, or images')
+            return error_response('Missing required fields: title, images, or userId')
+
+        # 从数据库获取用户cookie
+        user = User.query.get(user_id)
+        if not user or not user.cookie:
+            logger.error(f"User not found or no cookie available for user_id: {user_id}")
+            return error_response('Invalid user or user cookie not available')
 
         # 验证并转换图片路径
         image_paths = []
@@ -47,10 +55,9 @@ def upload_note():
                 
             image_paths.append(file_path)
             logger.info(f"Validated image path: {file_path}")
-        
-        logger.info("Initializing XhsUploader")
-        uploader = XhsUploader(cookie=XHS_COOKIE)
-        
+
+        # 使用数据库中的cookie初始化上传器
+        uploader = XhsUploader(user.cookie)
         formatted_topics = []
         desc_append_topics = []
         for topic in topics:
@@ -80,7 +87,8 @@ def upload_note():
         logger.info(f"Successfully published note to XHS with result: {note}")
         
         return success_response(note)
-
+    
+    
     except Exception as e:
         logger.exception("Error during note publishing")
         return error_response('Failed to publish note', 500) 

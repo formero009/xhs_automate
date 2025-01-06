@@ -12,12 +12,21 @@ const request = axios.create({
 })
 
 // 响应拦截器
-request.interceptors.response.use(
-  (response) => {
-    return response.data
+request.interceptors.response.use((response) => {
+    const apiResponse: ApiResponse = {
+      success: true,
+      data: response.data.data,
+      message: response.data.message
+    }
+    return apiResponse
   },
   (error) => {
-    return Promise.reject(error)
+    const apiResponse: ApiResponse = {
+      success: false,
+      data: null,
+      message: error.response?.data?.message || error.message
+    }
+    return Promise.reject(apiResponse)
   }
 )
 

@@ -1,19 +1,32 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import ThemePage from '../views/ThemePage.vue'
-import GeneratePage from '../views/GeneratePage.vue'
-import PublishPage from '../views/PublishPage.vue'
-import WorkflowPage from '../views/WorkflowPage.vue'
+import GeneratePage from '@/views/GeneratePage.vue'
+import ThemePage from '@/views/ThemePage.vue'
+import UserPage from '@/views/UserPage.vue'
+import PublishPage from '@/views/PublishPage.vue'
+import WorkflowPage from '@/views/WorkflowPage.vue'
+import AgentPage from '@/views/AgentPage.vue'
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
       path: '/',
-      redirect: '/theme'
+      redirect: '/generate'
+    },
+    {
+      path: '/generate',
+      name: 'generate',
+      component: GeneratePage
     },
     {
       path: '/theme',
+      name: 'theme',
       component: ThemePage
+    },
+    {
+      path: '/publish',
+      name: 'publish',
+      component: PublishPage
     },
     {
       path: '/workflow',
@@ -21,12 +34,14 @@ const router = createRouter({
       component: WorkflowPage
     },
     {
-      path: '/generate',
-      component: GeneratePage
+      path: '/users',
+      name: 'users',
+      component: UserPage
     },
     {
-      path: '/publish',
-      component: PublishPage
+      path: '/agent',
+      name: 'agent',
+      component: AgentPage
     }
   ]
 })

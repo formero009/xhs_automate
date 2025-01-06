@@ -1,5 +1,30 @@
 import request from './request'
-import type { ApiResponse, PublishNoteParams, PublishNoteResponse, HealthCheckResponse, WorkflowsResponse, GenerateImageParams, GenerateImageResponse, UploadImageResponse, GenerateCaptionParams, GenerateCaptionResponse, CreateWorkflowParams, UpdateWorkflowParams, WorkflowResponse } from './config'
+import type { 
+  ApiResponse, 
+  PublishNoteParams, 
+  PublishNoteResponse, 
+  HealthCheckResponse, 
+  GenerateImageParams, 
+  GenerateImageResponse, 
+  UploadImageResponse, 
+  GenerateCaptionParams, 
+  GenerateCaptionResponse,
+  ListImagesParams,
+  ListImagesResponse,
+  TranslationResult,
+  EnhanceResult,
+  CreateWorkflowParams,
+  UpdateWorkflowParams,
+  WorkflowResponse,
+  UploadWorkflowResponse,
+  ListWorkflowParams,
+  ListWorkflowResponse,
+  GetWorkflowVariablesResponse,
+  User,
+  ActiveUser,
+  Agent,
+  AgentForm
+} from './config'
 
 export const publishNote = async (params: PublishNoteParams): Promise<ApiResponse<PublishNoteResponse>> => {
   return request.post<any, ApiResponse<PublishNoteResponse>>('/api/publish', params)
@@ -38,32 +63,6 @@ export const generateImage = async (params: GenerateImageParams): Promise<ApiRes
   return request.post<any, ApiResponse<GenerateImageResponse>>('/api/generate-image', params)
 }
 
-// 添加分页参数接口
-interface ListImagesParams {
-  page?: number;
-  page_size?: number;
-}
-
-// 添加图片信息接口
-interface ImageInfo {
-  created_at: string;
-  id: number;
-  url: string;
-  prompt: string;
-}
-
-// 修改返回数据接口，更新 images 类型
-interface ListImagesResponse {
-  images: ImageInfo[];
-  pagination: {
-    current_page: number;
-    page_size: number;
-    total_pages: number;
-    total_images: number;
-  };
-}
-
-// 修改 listImages 函数，支持分页参数
 export const listImages = async (params?: ListImagesParams): Promise<ApiResponse<ListImagesResponse>> => {
   return request.get<any, ApiResponse<ListImagesResponse>>('/api/list-images', {
     params: {
@@ -71,15 +70,6 @@ export const listImages = async (params?: ListImagesParams): Promise<ApiResponse
       page_size: params?.page_size || 20
     }
   })
-}
-
-export interface TranslationResult {
-  original_text: string
-  translated_text: string
-}
-
-export interface EnhanceResult {
-  prompt: string
 }
 
 export const translateText = async (text: string): Promise<ApiResponse<TranslationResult>> => {
@@ -118,13 +108,6 @@ export const deleteWorkflow = async (id: string): Promise<ApiResponse> => {
   return request.delete<any, ApiResponse>(`/api/workflows/${id}`)
 }
 
-// 添加工作流文件上传接口
-interface UploadWorkflowResponse {
-  id: number;
-  name: string;
-  original_name: string;
-}
-
 export const uploadWorkflow = async (file: FormData): Promise<ApiResponse<UploadWorkflowResponse>> => {
   return request.post<any, ApiResponse<UploadWorkflowResponse>>('/api/workflow/upload', file, {
     headers: {
@@ -133,109 +116,18 @@ export const uploadWorkflow = async (file: FormData): Promise<ApiResponse<Upload
   })
 }
 
-// 添加工作流列表查询参数接口
-interface ListWorkflowParams {
-  page: number;
-  per_page: number;
-  search?: string;
-  sort_by?: string;
-  sort_order?: string;
-}
-
-// 修改工作流列表响应接口
-interface ListWorkflowResponse {
-  workflows: Array<{
-    id: number;
-    original_name: string;
-    preview_image: string;
-    input_vars: string[];
-    output_vars: string[];
-    created_at: string;
-    updated_at: string;
-    status: boolean;
-    file_size: number;
-    variables_count: number;
-  }>;
-  pagination: {
-    current_page: number;
-    per_page: number;
-    total: number;
-    pages: number;
-    has_next: boolean;
-    has_prev: boolean;
-  };
-}
-
-// 修改工作流列表查询方法
 export const listWorkflow = async (params: ListWorkflowParams): Promise<ApiResponse<ListWorkflowResponse>> => {
   return request.get<any, ApiResponse<ListWorkflowResponse>>('/api/workflow/list', { params })
 }
 
-// 添加切换工作流状态的方法
 export const toggleWorkflowStatus = async (id: number): Promise<ApiResponse<null>> => {
   return request.post<any, ApiResponse<null>>(`/api/workflow/${id}/toggle-status`)
 }
 
-// 添加工作流变量响应接口
-interface WorkflowVariable {
-  id: number;
-  node_id: string;
-  class_type: string;
-  title: string;
-  created_at: string;
-}
-
-interface GetWorkflowVariablesResponse {
-  workflow: {
-    id: number;
-    original_name: string;
-    status: boolean;
-  };
-  variables: WorkflowVariable[];
-}
-
-// 添加获取工作流变量的方法
 export const getWorkflowVariables = async (id: number): Promise<ApiResponse<GetWorkflowVariablesResponse>> => {
   return request.get<any, ApiResponse<GetWorkflowVariablesResponse>>(`/api/workflow/${id}/variables`)
 }
 
-// 添加类型定义
-interface WorkflowData {
-  id: number
-  name: string
-  original_name: string
-  created_at: string
-  updated_at: string
-  file_size: number
-  status: boolean
-  variables_count: number
-}
-
-interface PaginationData {
-  total: number
-  current_page: number
-  per_page: number
-}
-
-interface ListWorkflowResponse {
-  success: boolean
-  message?: string
-  data?: {
-    workflows: WorkflowData[]
-    pagination: PaginationData
-  }
-}
-
-interface UploadWorkflowResponse {
-  success: boolean
-  message?: string
-  data?: {
-    id: number
-    original_name: string
-  }
-}
-
-// 添加更新工作流变量的函数
 export async function updateWorkflowVars(
   workflowId: number, 
   inputVars: string[], 
@@ -247,4 +139,55 @@ export async function updateWorkflowVars(
     output_vars: outputVars,
     preview_image: previewImage
   })
+}
+
+// User Management APIs
+export async function listUsers() {
+  return request.get('/api/user/list')
+}
+
+export async function listActiveUsers(): Promise<ApiResponse<ActiveUser[]>> {
+  return request.get<any, ApiResponse<ActiveUser[]>>('/api/user/active')
+}
+
+export async function createUser(data: {
+  username: string
+  nickname?: string
+  cookie: string
+}) {
+  return request.post('/api/user/create', data)
+}
+
+export async function updateUser(userId: number, data: {
+  username?: string
+  nickname?: string
+  cookie?: string
+  status?: boolean
+}) {
+  return request.put(`/api/user/update/${userId}`, data)
+}
+
+export async function deleteUser(userId: number) {
+  return request.delete(`/api/user/delete/${userId}`)
+}
+
+// Agent APIs
+export async function createAgent(data: AgentForm): Promise<ApiResponse<Agent>> {
+  return request.post<any, ApiResponse<Agent>>('/api/agent/agents', data)
+}
+
+export async function listAgents(): Promise<ApiResponse<Agent[]>> {
+  return request.get<any, ApiResponse<Agent[]>>('/api/agent/agents')
+}
+
+export async function toggleAgent(agentId: number): Promise<ApiResponse<Agent>> {
+  return request.put<any, ApiResponse<Agent>>(`/api/agent/agents/${agentId}/toggle`)
+}
+
+export async function deleteAgent(agentId: number): Promise<ApiResponse<void>> {
+  return request.delete<any, ApiResponse<void>>(`/api/agent/agents/${agentId}`)
+}
+
+export async function updateAgent(agentId: number, data: AgentForm): Promise<ApiResponse<Agent>> {
+  return request.put<any, ApiResponse<Agent>>(`/api/agent/agents/${agentId}`, data)
 } 

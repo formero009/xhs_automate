@@ -11,18 +11,28 @@
         require-mark-placement="right-hanging"
         size="large"
       >
+        <n-form-item label="发布账号" path="userId">
+          <n-select
+            v-model:value="formData.userId"
+            :options="userOptions"
+            placeholder="请选择发布账号"
+            clearable
+            @update:value="handleUserChange"
+          />
+        </n-form-item>
+
         <n-form-item label="标题" path="title">
-          <n-input 
-            v-model:value="formData.title" 
+          <n-input
+            v-model:value="formData.title"
             placeholder="请输入笔记标题"
             clearable
           />
         </n-form-item>
 
-        <n-form-item label="描述" path="description">
-          <n-input 
-            v-model:value="formData.description" 
-            type="textarea" 
+        <n-form-item label="描述">
+          <n-input
+            v-model:value="formData.description"
+            type="textarea"
             placeholder="请输入笔记描述内容"
             :autosize="{ minRows: 3, maxRows: 6 }"
           />
@@ -84,9 +94,6 @@
           {{ isPublishing ? '发布中...' : '发布笔记' }}
         </n-button>
       </n-space>
-
-
-
     </n-card>
 
     <n-modal
@@ -101,10 +108,9 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, onMounted, onUnmounted } from 'vue'
-import { publishNote, uploadImage } from '../api/functions'
-import type { PublishNoteParams } from '../api/config'
-import emitter from '../utils/eventBus'
+import { defineComponent, ref, onMounted } from 'vue'
+import { publishNote, uploadImage, listActiveUsers, getUserCookie } from '../api/functions'
+import type { PublishNoteParams, ApiResponse, UploadImageResponse, ActiveUser, UserCookieResponse } from '../api/config'
 import type { UploadFileInfo } from 'naive-ui'
 import { useMessage } from 'naive-ui'
 import type { FormInst } from 'naive-ui'
@@ -121,24 +127,27 @@ export default defineComponent({
     const isPublishing = ref(false)
     const selectedTopics = ref<string[]>([])
     const message = useMessage()
-
+    const userOptions = ref<{ label: string; value: number }[]>([])
+    
     const formData = ref({
+      userId: undefined as number | undefined,
       title: '',
       description: '',
       is_private: true,
       images: [] as string[],
       topics: [] as string[]
-    } as PublishNoteParams)
+    })
 
     const rules = {
+      userId: {
+        required: true,
+        message: '请选择发布账号',
+        trigger: 'change',
+        type: 'number'
+      },
       title: {
         required: true,
         message: '请输入笔记标题',
-        trigger: ['blur', 'input']
-      },
-      description: {
-        required: true,
-        message: '请输入笔记描述',
         trigger: ['blur', 'input']
       },
       images: {
@@ -156,6 +165,19 @@ export default defineComponent({
     const previewImageUrl = ref('')
 
     onMounted(() => {
+      // 获取活跃用户列表
+      listActiveUsers().then((res: any) => {
+        const response = res as ApiResponse<ActiveUser[]>
+        if (response.success && response.data) {
+          userOptions.value = response.data.map(user => ({
+            label: user.nickname || user.username,
+            value: user.id
+          }))
+        } else {
+          message.error('获取用户列表失败')
+        }
+      })
+
       // 检查是否有保存的标题
       const savedTitle = localStorage.getItem('xhs_Title')
       if (savedTitle) {
@@ -192,10 +214,6 @@ export default defineComponent({
       }
     })
 
-    onUnmounted(() => {
-      emitter.all.clear()
-    })
-
     const handleTopicsChange = (values: string[]) => {
       if (values.length > 10) {
         selectedTopics.value = values.slice(0, 10)
@@ -217,9 +235,9 @@ export default defineComponent({
         const uploadImageData = new FormData()
         uploadImageData.append('file', file.file)
 
-        const response = await uploadImage(uploadImageData)
+        const response = await uploadImage(uploadImageData) as ApiResponse<UploadImageResponse>
         
-        if (response.success) {
+        if (response.success && response.data) {
           // 更新文件状态和URL
           file.status = 'finished'
           file.url = response.data.path
@@ -253,21 +271,33 @@ export default defineComponent({
     const handlePublish = async () => {
       try {
         if (!formRef.value) return
+
+        // 先验证是否选择了账号
+        if (!formData.value.userId) {
+          message.error('请选择发布账号')
+          return
+        }
+
         await formRef.value.validate()
         isPublishing.value = true
 
-        // 修改发布数据的构造方式，直接传递话题数组
+        // 修改发布数据的构造方式，只传递userId
         const publishData = {
-          ...formData.value,
-          topics: selectedTopics.value // 直接传递话题数组
+          userId: formData.value.userId,
+          title: formData.value.title,
+          description: formData.value.description,
+          images: formData.value.images,
+          topics: selectedTopics.value,
+          is_private: formData.value.is_private
         }
 
-        const response = await publishNote(publishData)
-        if (response.success) {
+        const publishResponse = await publishNote(publishData) as ApiResponse
+        if (publishResponse.success) {
           message.success('笔记发布成功！')
           // 重置表单
           formRef.value?.restoreValidation()
           formData.value = {
+            userId: undefined,
             title: '',
             description: '',
             is_private: true,
@@ -277,13 +307,20 @@ export default defineComponent({
           uploadFiles.value = []
           selectedTopics.value = []
         } else {
-          throw new Error(response.message || '发布失败')
+          throw new Error(publishResponse.message || '发布失败')
         }
       } catch (error: any) {
         console.error(error)
         message.error(error?.message || '发布失败')
       } finally {
         isPublishing.value = false
+      }
+    }
+
+    const handleUserChange = (value: number | null) => {
+      if (value) {
+        // 清除可能存在的验证错误
+        formRef.value?.restoreValidation()
       }
     }
 
@@ -295,13 +332,15 @@ export default defineComponent({
       isPublishing,
       selectedTopics,
       topicOptions,
+      userOptions,
       handleTopicsChange,
       customUpload,
       handleUploadChange,
       handlePublish,
       showPreview,
       previewImageUrl,
-      handlePreview
+      handlePreview,
+      handleUserChange
     }
   }
 })

@@ -147,22 +147,69 @@ def upload_workflow():
         content_md5 = hashlib.md5(file_content).hexdigest()
         logger.info(f"File MD5: {content_md5}")
         
-        # 检查是否存在相同内容的工作流
-        existing_workflow = Workflow.query.filter_by(content_md5=content_md5).first()
-        if existing_workflow:
-            logger.info(f"Found existing workflow with same content: {existing_workflow.id}")
-            return success_response(
-                message='Workflow already exists',
-                data={
-                    'id': existing_workflow.id,
-                    'original_name': existing_workflow.original_name,
-                    'name': existing_workflow.name,
-                    'file_size': existing_workflow.file_size,
-                    'created_at': existing_workflow.created_at.isoformat(),
-                    'variables_count': len(existing_workflow.variables)
-                }
-            )
+        # 检查是否存在同名工作流（用于判断是更新还是新增）
+        existing_workflow = Workflow.query.filter_by(original_name=file.filename).first()
         
+        if existing_workflow:
+            logger.info(f"Found existing workflow with same name: {existing_workflow.id}")
+            try:
+                # 解析JSON内容
+                workflow_data = json.loads(file_content.decode('utf-8'))
+                
+                # 验证工作流格式
+                is_valid, error_message = validate_workflow_json(workflow_data)
+                if not is_valid:
+                    raise ValueError(f"Invalid workflow format: {error_message}")
+                
+                # 生成新的存储文件名
+                timestamp = datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')
+                safe_filename = secure_filename(file.filename)
+                storage_filename = f"{os.path.splitext(safe_filename)[0]}_{timestamp}.json"
+                file_path = os.path.join(UPLOAD_FOLDER, storage_filename).replace('\\', '/')
+                
+                # 保存新文件
+                file.seek(0)
+                file.save(file_path)
+                
+                # 删除旧文件
+                if os.path.exists(existing_workflow.file_path):
+                    os.remove(existing_workflow.file_path)
+                
+                # 更新工作流记录
+                existing_workflow.name = storage_filename
+                existing_workflow.file_path = file_path
+                existing_workflow.file_size = len(file_content)
+                existing_workflow.content_md5 = content_md5
+                existing_workflow.updated_at = datetime.now(timezone.utc)
+                
+                # 删除旧的变量记录
+                WorkflowVariable.query.filter_by(workflow_id=existing_workflow.id).delete()
+                
+                # 重新解析并保存工作流变量
+                parse_workflow_variables(workflow_data, db, existing_workflow.id)
+                
+                db.session.commit()
+                
+                logger.info(f"Successfully updated workflow: {existing_workflow.id}")
+                return success_response(
+                    message='Workflow updated successfully',
+                    data={
+                        'id': existing_workflow.id,
+                        'original_name': existing_workflow.original_name,
+                        'name': existing_workflow.name,
+                        'file_size': existing_workflow.file_size,
+                        'created_at': existing_workflow.created_at.isoformat(),
+                        'variables_count': len(workflow_data)
+                    }
+                )
+                
+            except Exception as e:
+                logger.exception("Error while updating workflow")
+                if 'file_path' in locals() and os.path.exists(file_path):
+                    os.remove(file_path)
+                return error_response(f"An error occurred while updating workflow: {str(e)}")
+        
+        # 如果不是更新，按原有逻辑处理新增
         file.seek(0)  # 重置文件指针
         
         # 生成唯一文件名（用于存储）
@@ -396,7 +443,7 @@ def update_workflow_vars(workflow_id):
             if node_id not in workflow_vars:
                 return error_response(f"Node ID not found in workflow: {node_id}")
         
-        # ��列表序列化为JSON字符串后存储
+        # 列表序列化为JSON字符串后存储
         workflow.input_vars = json.dumps(input_vars)
         workflow.output_vars = json.dumps(output_vars)
         workflow.preview_image = preview_image  # 保存预览图路径

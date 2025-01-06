@@ -146,8 +146,8 @@ async def main():
     spider = PinterestSpider()
     await spider.initialize()
     
-    target_url = "https://jp.pinterest.com/pin/34199278415950999/"
-    await spider.scrape_images(target_url, scroll_times=2)
+    target_url = "https://jp.pinterest.com/pin/17240411068831921/"
+    await spider.scrape_images(target_url, scroll_times=4)
 
 if __name__ == "__main__":
     asyncio.run(main())

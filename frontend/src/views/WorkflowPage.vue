@@ -372,6 +372,7 @@ export default defineComponent({
           sort_order: 'desc',
           search: searchName.value || undefined
         })
+        console.log('API response:', res)
         
         if (res.success && res.data) {
           console.log('API response:', res.data)

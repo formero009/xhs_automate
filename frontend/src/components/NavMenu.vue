@@ -2,19 +2,27 @@
   <nav class="nav-menu">
     <router-link to="/theme" class="nav-item">
       <i class="icon theme-icon"></i>
-      <span>主题</span>
+      <span>提示词生成</span>
     </router-link>
     <router-link to="/generate" class="nav-item">
       <i class="icon generate-icon"></i>
-      <span>生成</span>
+      <span>内容生成</span>
     </router-link>
     <router-link to="/publish" class="nav-item">
       <i class="icon publish-icon"></i>
-      <span>发布</span>
+      <span>笔记发布</span>
     </router-link>
     <router-link to="/workflow" class="nav-item">
       <i class="icon workflow-icon"></i>
       <span>工作流</span>
+    </router-link>
+    <router-link to="/agent" class="nav-item">
+      <i class="icon robot-icon"></i>
+      <span>自动化托管</span>
+    </router-link>
+    <router-link to="/users" class="nav-item">
+      <i class="icon user-icon"></i>
+      <span>小红书账户</span>
     </router-link>
   </nav>
 </template>
@@ -81,6 +89,14 @@
 
 .workflow-icon {
   background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 640 512"><path d="M384 320H256c-17.67 0-32 14.33-32 32v128c0 17.67 14.33 32 32 32h128c17.67 0 32-14.33 32-32V352c0-17.67-14.33-32-32-32zM192 32c0-17.67-14.33-32-32-32H32C14.33 0 0 14.33 0 32v128c0 17.67 14.33 32 32 32h95.72l73.16 128.04C211.98 300.98 232.4 288 256 288h.28L192 175.51V128h224V64H192V32zM608 0H480c-17.67 0-32 14.33-32 32v128c0 17.67 14.33 32 32 32h128c17.67 0 32-14.33 32-32V32c0-17.67-14.33-32-32-32z" fill="currentColor"></path></svg>');
+}
+
+.robot-icon {
+  background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M256 32c17.7 0 32 14.3 32 32v32h144c26.5 0 48 21.5 48 48v192c0 26.5-21.5 48-48 48H80c-26.5 0-48-21.5-48-48V144c0-26.5 21.5-48 48-48h144V64c0-17.7 14.3-32 32-32zM64 256c0 17.7 14.3 32 32 32h32v32c0 17.7 14.3 32 32 32s32-14.3 32-32v-32h96v32c0 17.7 14.3 32 32 32s32-14.3 32-32v-32h32c17.7 0 32-14.3 32-32s-14.3-32-32-32h-32v-32c0-17.7-14.3-32-32-32s-32 14.3-32 32v32h-96v-32c0-17.7-14.3-32-32-32s-32 14.3-32 32v32H96c-17.7 0-32 14.3-32 32zM168 392c0-13.3 10.7-24 24-24h128c13.3 0 24 10.7 24 24s-10.7 24-24 24H192c-13.3 0-24-10.7-24-24z" fill="currentColor"></path></svg>');
+}
+
+.user-icon {
+  background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M224 256c70.7 0 128-57.3 128-128S294.7 0 224 0S96 57.3 96 128s57.3 128 128 128zm-45.7 48C79.8 304 0 383.8 0 482.3C0 498.7 13.3 512 29.7 512H418.3c16.4 0 29.7-13.3 29.7-29.7C448 383.8 368.2 304 269.7 304H178.3z" fill="currentColor"></path></svg>');
 }
 
 @media (max-width: 768px) {

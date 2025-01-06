@@ -17,6 +17,11 @@ ALLOWED_EXTENSIONS = set(os.getenv('ALLOWED_EXTENSIONS', 'png,jpg,jpeg').split('
 UPLOAD_FOLDER = os.path.join(BASE_PATH, os.getenv('UPLOAD_FOLDER', 'upload/images'))
 OUTPUT_FOLDER = os.path.join(BASE_PATH, os.getenv('OUTPUT_FOLDER', 'output/images'))
 
+# 提示词增强系统消息
+PROMPT_ENHANCE_SYSTEM_MESSAGE = os.getenv('PROMPT_ENHANCE_SYSTEM_MESSAGE')
+# 小红书文案生成系统消息
+PROMPT_CAPTION_SYSTEM_MESSAGE = os.getenv('PROMPT_CAPTION_SYSTEM_MESSAGE')
+
 # OpenAI配置
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 OPENAI_API_BASE = os.getenv('OPENAI_API_BASE')

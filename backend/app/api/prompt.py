@@ -8,7 +8,9 @@ from conf import (
     OPENAI_API_BASE, 
     BASE_PATH, 
     OPENAI_ENHANCE_MODEL,
-    OPENAI_CAPTION_MODEL
+    OPENAI_CAPTION_MODEL,
+    PROMPT_ENHANCE_SYSTEM_MESSAGE,
+    PROMPT_CAPTION_SYSTEM_MESSAGE,
 )
 from app.utils.logger import logger
 
@@ -26,10 +28,7 @@ def enhance_prompt():
 
         logger.info(f"Processing prompt: {prompt[:100]}...")
         
-        system_message = """I am an expert in avatar prompt generation. 
-        I expand and enrich user-provided prompts by focusing on aspects like lighting, composition, atmosphere, details, and theme to generate an enhanced version of the prompt. 
-        I return only the enhanced prompt without any extra commentary, and I communicate exclusively in English.
-        """
+        system_message = PROMPT_ENHANCE_SYSTEM_MESSAGE
         
         client = openai.OpenAI(
             api_key=OPENAI_API_KEY,
@@ -66,12 +65,7 @@ def generate_caption():
 
         logger.info(f"Processing prompt for caption: {prompt[:100]}...")
         
-        system_message = """你是一个专业的小红书文案生成专家。请根据用户的描述生成小红书文案。
-        返回格式必须是JSON格式，包含以下三个字段：
-        1. title: 爆炸性的简短标题，很有吸引力，善于下钩子，要很有梗，不要直接描述图片内容
-        2. content: 简洁有趣的正文内容，突出头像和壁纸的分享，要有故事性和互动性
-        3. topics: 话题标签数组，每个标签前都要加#号，长度不超过10个字符，数量不少于5个
-        """
+        system_message = PROMPT_CAPTION_SYSTEM_MESSAGE
         
         client = openai.OpenAI(
             api_key=OPENAI_API_KEY,

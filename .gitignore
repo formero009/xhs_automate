@@ -170,3 +170,10 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 /backend/output/images
+/backend/README.md
+/backend/spider/images
+/backend/upload/images
+/backend/upload/workflows
+/frontend/public/image
+/frontend/.vscode
+/frontend/README.md
